@@ -1,3 +1,7 @@
+# Orignal sources
+This is a copy of [pyfrancy_cpp](https://github.com/gunnarx/pyfrancagen/tree/master/pyfranca_cpp) folder in order to split this functionality into a separate git repository.
+This partly solves the issue mentioned in [Readme](https://github.com/gunnarx/pyfrancagen/blob/master/README.md) enabling the separation of project specific settings and generic generator file.
+
 # Prerequisites
 
 * clang-format must be installed for post-processing of generated C/C++ code.
