@@ -1,6 +1,4 @@
-#!/usr/bin/python
-# (C) 2017 Gunnar Andersson
-# SPDX-License-Identifier: MPL-2.0
+#!/usr/bin/python3
 
 # -*- coding: utf-8 -*-
 # vim: tw = 0
@@ -12,6 +10,7 @@ Generate stuff from Franca IDL based on templates
 
 import sys
 import os
+import shutil
 import time
 from itertools import *
 
@@ -24,6 +23,7 @@ sys.path.append(os.getcwd() + "/pyfranca")
 sys.path.append(os.getcwd() + "/../pyfranca")
 
 # Same for jinja2 if it's not installed
+sys.path.append(os.getcwd() + "/jinja")
 sys.path.append(os.getcwd() + "/../jinja")
 
 from pyfranca import Processor, LexerException, ParserException, \
@@ -46,8 +46,8 @@ class MyLoader(BaseLoader):
             raise TemplateNotFound(template)
 
         mtime = os.path.getmtime(path)
-        with file(path) as f:
-            source = f.read().decode('utf-8')
+        with open(path, encoding='utf-8') as f:
+            source = f.read()
         return source, path, lambda: mtime == os.path.getmtime(path)
 
     def get_file_location(self, name):
@@ -71,6 +71,7 @@ workingdir = os.getcwd()
 basedir = os.path.dirname(os.path.realpath(__file__))
 output_dir = workingdir + "/" + RELATIVE_OUTPUT_DIR
 
+
 # Where to find templates
 env = Environment(
     loader = MyLoader(workingdir,  # preferred/override location
@@ -81,7 +82,7 @@ env = Environment(
 # ---------------------------------------------------------------
 
 def log(*kwargs):
-    print ", ".join(kwargs)
+    print(", ".join(kwargs))
     pass
 
 def clang_format(file):
@@ -105,7 +106,7 @@ def boilerplate_from_file():
 # ---------------------------------------------------------------
 
 # Here we use a combination of a Set for existence, and an array for ordered
-# storage. An OrderedDict / OrderdSet could be an alternative but swapping
+# storage. An OrderedDict / OrderedSet could be an alternative but swapping
 # elements seemed messier there than in a plain array.
 
 is_rendered = set()
@@ -138,7 +139,7 @@ def reset_rendered_types():
 def process_file(file):
 
     # Relative path includes seem to only work if we're in the right
-    # working dirctory also for the file:
+    # working directory also for the file:
     d = os.path.dirname(file)
     f = os.path.basename(file)
     os.chdir(d)
@@ -178,13 +179,15 @@ def clean(file):
 # TODO - maybe check that result is not empty before writing file
 def write_result_file(result, name, suffix):
     outfile = output_dir + "/" + name + suffix
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
     f = open(outfile, 'w')
     f.write(result)
     f.close()
     # clean up result
     clang_format(outfile)
     clean(outfile)
-    print "Wrote file: {}".format(outfile)
+    print("Wrote file: {}".format(outfile))
 
 # ----- Rendering helpers -----
 # These functions take some of the logic out of the rendering templates which
@@ -292,7 +295,7 @@ def template_render_complex_types(package, item, imports):
 
     return fullresult
 
-def prepare_swap_types(): 
+def prepare_swap_types():
     # Preparation: store the location of types in rendered_types_ordered
     # for easy lookup
     for i, r in enumerate(rendered_types_ordered):
@@ -374,7 +377,7 @@ def template_render_plain_file(processor, filter, templatefile, suffix):
             write_result_file(boilerplate_from_file() + result, name, suffix)
 
 # This is used for headers that are expected to contain types.
-# the order that types are definend is critical.
+# the order that types are definened is critical.
 def render_typedef_file(processor, filter, suffix):
 
     result = ""
