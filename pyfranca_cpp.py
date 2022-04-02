@@ -201,15 +201,15 @@ def is_array(x):
 
 def render_type(x):
     if is_array(x.type):
-        return"std::vector<{}>".format(x.type.type.name)
+        return "std::vector<{}>".format(x.type.type.name)
     else:
-        return x.type.name
+        return "{}".format(x.type.name)
 
 # Enumerators also require a bit of logic since they can have a value
 # (equal sign) or not.
 def render_enumerator(eo):
     if eo.value != None:
-        return "{} = {},\n".format(eo.name, eo.value)
+        return "{} = 0x{},\n".format(eo.name, eo.value.value)
     else:
         return "{},\n".format(eo.name)
 
@@ -248,6 +248,8 @@ def template_render_complex_types(package, item, imports):
     for e in item.enumerations.values():
         for x in e.enumerators.values():
             type_reference(e.name, x.name)  # FIXME This is not needed...
+        if e.extends != None:
+            type_reference(e.name, e.extends)
 
         tpl = env.get_template('enumeration.tpl')
         r  = tpl.render(item = e, render_enumerator = render_enumerator)
@@ -408,7 +410,6 @@ def render_typedef_file(processor, filter, suffix):
                 result = template_render_complex_types(p, tc, imports)
                 if len(result) != 0:
                     write_result_file(result, tc.name, suffix)
-
 
 def main():
     for f in FIDL_FILES:
