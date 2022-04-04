@@ -159,11 +159,14 @@ def process_fidl(name, fidl_text):
     except (LexerException, ParserException, ProcessorException) as e:
         print("ERROR: {}".format(e))
 
+    template = "interfaceheader.tpl"
+    template_render_plain_file(processor, ['interfaces'], template, "i", ".h")
+
     template = "classheader.tpl"
-    template_render_plain_file(processor, ['interfaces'], template, ".h")
+    template_render_plain_file(processor, ['interfaces'], template, "", ".h")
 
     template = "class.tpl"
-    template_render_plain_file(processor, ['interfaces'], template, ".cpp")
+    template_render_plain_file(processor, ['interfaces'], template, "", ".cpp")
 
     render_typedef_file(processor, ['interfaces', 'typecollections'], ".types.h")
 
@@ -177,8 +180,8 @@ def clean(file):
     open(file, 'w').write(s)
 
 # TODO - maybe check that result is not empty before writing file
-def write_result_file(result, name, suffix):
-    outfile = output_dir + "/" + name + suffix
+def write_result_file(result, name, prefix, suffix):
+    outfile = output_dir + "/" + prefix + name + suffix
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
     f = open(outfile, 'w')
@@ -353,7 +356,7 @@ def reorder_types():
 # This is used for rendering source files that are not just a list of types.
 # For example as class declarations (.h) and class method body defintion
 # (.cpp)
-def template_render_plain_file(processor, filter, templatefile, suffix):
+def template_render_plain_file(processor, filter, templatefile, prefix, suffix):
     tpl = env.get_template(templatefile)
     timestamp = time.strftime("%Y-%m-%d, %H:%M:%d")
 
@@ -376,7 +379,7 @@ def template_render_plain_file(processor, filter, templatefile, suffix):
                 result += r
 
         if name != None and len(result) != 0:
-            write_result_file(boilerplate_from_file() + result, name, suffix)
+            write_result_file(boilerplate_from_file() + result, name, prefix, suffix)
 
 # This is used for headers that are expected to contain types.
 # the order that types are definened is critical.
@@ -402,14 +405,14 @@ def render_typedef_file(processor, filter, suffix):
             for i in p.interfaces.values():
                 result = template_render_complex_types(p, i, imports)
                 if len(result) != 0:
-                    write_result_file(result, i.name, suffix)
+                    write_result_file(result, i.name, "", suffix)
 
         reset_rendered_types()
         if 'typecollections' in filter:
             for tc in p.typecollections.values():
                 result = template_render_complex_types(p, tc, imports)
                 if len(result) != 0:
-                    write_result_file(result, tc.name, suffix)
+                    write_result_file(result, tc.name, "", suffix)
 
 def main():
     for f in FIDL_FILES:
