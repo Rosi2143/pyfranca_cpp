@@ -2,8 +2,8 @@
 {{ doxygen.add_inline_comment(item) -}}
 struct {{ item.name }} {
     {%- for f in item.fields.values() %}
-        {{ doxygen.add_inline_comment(f) -}}
-        {{ render_type(f) }} {{ f.name }}; {% endfor %}
+        {{ render_type(f) }} {{ f.name }}; {{ doxygen.add_inline_comment(f) -}}
+         {% endfor %}
 };
 {# TODO: extends, reference, flags  #}
 
