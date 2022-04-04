@@ -209,7 +209,7 @@ def render_type(x):
 # (equal sign) or not.
 def render_enumerator(eo):
     if eo.value != None:
-        return "{} = 0x{},\n".format(eo.name, eo.value.value)
+        return "{} = {},\n".format(eo.name, eo.value.value)
     else:
         return "{},\n".format(eo.name)
 
