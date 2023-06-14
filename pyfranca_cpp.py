@@ -10,7 +10,6 @@ Generate stuff from Franca IDL based on templates
 
 import sys
 import os
-import shutil
 import time
 from itertools import *
 
@@ -23,15 +22,17 @@ sys.path.append(os.getcwd() + "/pyfranca")
 sys.path.append(os.getcwd() + "/../pyfranca")
 
 # Same for jinja2 if it's not installed
-sys.path.append(os.getcwd() + "/jinja")
-sys.path.append(os.getcwd() + "/../jinja")
+sys.path.append(os.getcwd() + "/jinja/src")
+sys.path.append(os.getcwd() + "/../jinja/src")
 
 from pyfranca import Processor, LexerException, ParserException, \
     ProcessorException, ast
 from pyfranca.ast import Array
-from jinja2 import Environment, Template, PackageLoader, BaseLoader, TemplateNotFound
+from jinja2 import Environment, BaseLoader, TemplateNotFound
 
 # From jinja2 docs
+
+
 class MyLoader(BaseLoader):
 
     def __init__(self, prioritydir, defaultdir, relpath):
@@ -64,6 +65,7 @@ class MyLoader(BaseLoader):
 # Setting up...
 # Constants and other global values
 
+
 RELATIVE_OUTPUT_DIR = 'src_gen'
 
 # The starting directory (assumed to be == the script directory for now)
@@ -74,23 +76,25 @@ output_dir = workingdir + "/" + RELATIVE_OUTPUT_DIR
 
 # Where to find templates
 env = Environment(
-    loader = MyLoader(workingdir,  # preferred/override location
-                      basedir,      # fallback/default location
-                      'templates') # relative path
+    loader=MyLoader(workingdir,  # preferred/override location
+                    basedir,      # fallback/default location
+                    'templates')  # relative path
 )
 
 # ---------------------------------------------------------------
 
+
 def log(*kwargs):
     print(", ".join(kwargs))
-    pass
+
 
 def clang_format(file):
     call(['clang-format', '-i', file])
 
+
 def boilerplate_from_file():
     path = env.loader.get_file_location('boilerplate.txt')
-    return open(path, 'r').read()
+    return open(path, 'r', encoding="utf8").read()
 
 # ---------------------------------------------------------------
 # Type definitions generation
@@ -109,18 +113,23 @@ def boilerplate_from_file():
 # storage. An OrderedDict / OrderedSet could be an alternative but swapping
 # elements seemed messier there than in a plain array.
 
+
 is_rendered = set()
 rendered_types_ordered = []
 reference_pairs = set()
 rendered_types_index = {}
 
 # Does a reference b?
-def a_reference_to_b(a,b):
-    return (a,b) in reference_pairs
 
-def type_reference(a,b):
+
+def a_reference_to_b(a, b):
+    return (a, b) in reference_pairs
+
+
+def type_reference(a, b):
     # Used as a Set - the pair exists or not
-    reference_pairs.add((a,b))
+    reference_pairs.add((a, b))
+
 
 def store_rendered_type(name, text):
     # Because of files including files (including files...) there can be
@@ -130,11 +139,14 @@ def store_rendered_type(name, text):
         rendered_types_ordered.append((name, text))
 
 # Empty all data structures
+
+
 def reset_rendered_types():
     reference_pairs.clear()
     is_rendered.clear()
     rendered_types_ordered[:] = []
     rendered_types_index.clear()
+
 
 def process_file(file):
 
@@ -144,13 +156,14 @@ def process_file(file):
     f = os.path.basename(file)
     os.chdir(d)
 
-    file = open(f,"r")
-    s = file.read().replace('\r\n', '\n') # Need to get rid of Windows linefeeds
+    file = open(f, "r", encoding="utf8")
+    s = file.read().replace('\r\n', '\n')  # Need to get rid of Windows linefeeds
     fidl_text = s.replace('^version', 'interfaceversion')      # FIXME, dirty fix of ^ escape character
 
     #dump_contents(f, s)
     process_fidl(f, fidl_text)
     os.chdir(workingdir)
+
 
 def process_fidl(name, fidl_text):
     processor = Processor()
@@ -170,21 +183,24 @@ def process_fidl(name, fidl_text):
 
     render_typedef_file(processor, ['interfaces', 'typecollections'], ".types.h")
 
+
 def clean(file):
     # Some needed cleanup (smarter templates might avoid this)
-    f = open(file,'r')
-    s = f.read()
-    s = s.replace('){',')\n{')
-    s = s.replace(',)',')')
-    f.close()
-    open(file, 'w').write(s)
+    fileptr = open(file, 'r', encoding="utf8")
+    filecontent = fileptr.read()
+    filecontent = filecontent.replace('){', ')\n{')
+    filecontent = filecontent.replace(',)', ')')
+    fileptr.close()
+    open(file, 'w', encoding="utf8").write(filecontent)
 
 # TODO - maybe check that result is not empty before writing file
+
+
 def write_result_file(result, name, prefix, suffix):
     outfile = output_dir + "/" + prefix + name + suffix
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-    f = open(outfile, 'w')
+    f = open(outfile, 'w', encoding="utf8")
     f.write(result)
     f.close()
     # clean up result
@@ -199,8 +215,11 @@ def write_result_file(result, name, prefix, suffix):
 # Arrays are complex types and can't be rendered like normal ones The AST
 # requires us to extract the inner *referenced* type.name rather than usually
 # simply the name of the type.
+
+
 def is_array(x):
     return type(x) is ast.Array
+
 
 def render_type(x):
     if is_array(x.type):
@@ -210,15 +229,16 @@ def render_type(x):
 
 # Enumerators also require a bit of logic since they can have a value
 # (equal sign) or not.
+
+
 def render_enumerator(eo):
     if eo.value != None:
         return "{} = {},\n".format(eo.name, eo.value.value)
     else:
         return "{},\n".format(eo.name)
 
+
 def template_render_complex_types(package, item, imports):
-    name = item.name
-    types = item.structs  # FIXME not needed
     result = ""
 
     timestamp = time.strftime("%Y-%m-%d, %H:%M:%d")
@@ -233,7 +253,7 @@ def template_render_complex_types(package, item, imports):
                 type_reference(s.name, f.type.name)
 
         tpl = env.get_template('struct.tpl')
-        r  = tpl.render(item = s, render_type = render_type)
+        r = tpl.render(item=s, render_type=render_type)
         store_rendered_type(s.name, r)
 
     for u in item.unions.values():
@@ -245,7 +265,7 @@ def template_render_complex_types(package, item, imports):
                 type_reference(u.name, f.type.name)
 
         tpl = env.get_template('union.tpl')
-        r  = tpl.render(item = u, render_type = render_type)
+        r = tpl.render(item=u, render_type=render_type)
         store_rendered_type(u.name, r)
 
     for e in item.enumerations.values():
@@ -255,21 +275,21 @@ def template_render_complex_types(package, item, imports):
             type_reference(e.name, e.extends)
 
         tpl = env.get_template('enumeration.tpl')
-        r  = tpl.render(item = e, render_enumerator = render_enumerator)
+        r = tpl.render(item=e, render_enumerator=render_enumerator)
         store_rendered_type(e.name, r)
 
     for t in item.typedefs.values():
         type_reference(t.name, t.type.name)
 
         tpl = env.get_template('typedef.tpl')
-        r  = tpl.render(item = t, render_type = render_type)
+        r = tpl.render(item=t, render_type=render_type)
         store_rendered_type(t.name, r)
 
     for a in item.arrays.values():
         type_reference(a.name, a.type.name)
 
         tpl = env.get_template('array.tpl')
-        r  = tpl.render(item = a, render_type = render_type)
+        r = tpl.render(item=a, render_type=render_type)
         store_rendered_type(a.name, r)
 
     for m in item.maps.values():
@@ -277,7 +297,7 @@ def template_render_complex_types(package, item, imports):
         type_reference(m.name, m.value_type.name)
 
         tpl = env.get_template('map.tpl')
-        r  = tpl.render(item = m)
+        r = tpl.render(item=m)
         store_rendered_type(m.name, r)
 
     # Determine type rendering order
@@ -287,7 +307,7 @@ def template_render_complex_types(package, item, imports):
     while swap_occurred:
         sys.stdout.write('.')
         swap_occurred = reorder_types()
-    print
+    print("")
 
     # OK, now output rendered types in the right order
     for idx, r in enumerate(rendered_types_ordered):
@@ -295,10 +315,11 @@ def template_render_complex_types(package, item, imports):
         result += r[1]
 
     tpl = env.get_template('typesheader.tpl')
-    fullresult  = tpl.render(body = result, timestamp = timestamp,
-            boilerplate = boilerplate_from_file(), imports = imports)
+    fullresult = tpl.render(body=result, timestamp=timestamp,
+                            boilerplate=boilerplate_from_file(), imports=imports)
 
     return fullresult
+
 
 def prepare_swap_types():
     # Preparation: store the location of types in rendered_types_ordered
@@ -307,7 +328,8 @@ def prepare_swap_types():
         name = r[0]
         rendered_types_index[name] = i
 
-def swap_them(a,b):
+
+def swap_them(a, b):
 
     # Get indices
     i1 = rendered_types_index[a]
@@ -322,8 +344,10 @@ def swap_them(a,b):
     rendered_types_index[a] = i2
     rendered_types_index[b] = i1
 
+
 def b_is_defined_later_than_a(a, b):
     return (rendered_types_index[a] < rendered_types_index[b])
+
 
 def reorder_types():
     # What are we doing here?
@@ -341,7 +365,6 @@ def reorder_types():
     # (Note it will also likely deadlock if a file has a circular dependency!
     # Opportunity for improvement here...)
 
-    swapped = False
     for r1 in rendered_types_ordered:
         a = r1[0]  # We deal with the names of the types.  FIXME: A namedtuple would be nice here.
         for r2 in rendered_types_ordered:
@@ -356,26 +379,30 @@ def reorder_types():
 # This is used for rendering source files that are not just a list of types.
 # For example as class declarations (.h) and class method body defintion
 # (.cpp)
-def template_render_plain_file(processor, filter, templatefile, prefix, suffix):
+
+
+def template_render_plain_file(processor, filterstr, templatefile, prefix, suffix):
     tpl = env.get_template(templatefile)
     timestamp = time.strftime("%Y-%m-%d, %H:%M:%d")
 
     result = ""
     for p in processor.packages.values():
         # TODO Redo the imports --> #include connection
-        imports = map(lambda x : x.namespace_reference, p.imports)
+        imports = map(lambda x: x.namespace_reference, p.imports)
 
         name = None
-        if 'typecollections' in filter:
+        if 'typecollections' in filterstr:
             for tc in p.typecollections.values():
                 name = tc.name
-                r  = tpl.render(item = tc, name = name, timestamp = ts, render_type = render_type, boilerplate = "", imports = imports)
+                r = tpl.render(item=tc, name=name, timestamp=ts,
+                               render_type=render_type, boilerplate="", imports=imports)
                 result += r
 
-        if 'interfaces' in filter:
+        if 'interfaces' in filterstr:
             for i in p.interfaces.values():
                 name = i.name    # This takes priority for the chosen file name
-                r  = tpl.render(item = i, name = name, timestamp = timestamp, render_type = render_type, boilerplate = "", imports = imports)
+                r = tpl.render(item=i, name=name, timestamp=timestamp,
+                               render_type=render_type, boilerplate="", imports=imports)
                 result += r
 
         if name != None and len(result) != 0:
@@ -383,17 +410,19 @@ def template_render_plain_file(processor, filter, templatefile, prefix, suffix):
 
 # This is used for headers that are expected to contain types.
 # the order that types are definened is critical.
-def render_typedef_file(processor, filter, suffix):
+
+
+def render_typedef_file(processor, filterstr, suffix):
 
     result = ""
     for p in processor.packages.values():
         # TODO imports
-        imports = map(lambda x : x.namespace_reference, p.imports)
+        imports = map(lambda x: x.namespace_reference, p.imports)
 
         # FIXME does not fully take into account what parts are imported
-        #self.namespace    --  None for "import model"
-        #self.package_reference
-        #self.namespace_reference
+        # self.namespace    --  None for "import model"
+        # self.package_reference
+        # self.namespace_reference
 
         # Simple mapping.  For now it assumes all namespaces are unique and
         # not dependent on the path.  All type headers are generated into a
@@ -401,27 +430,27 @@ def render_typedef_file(processor, filter, suffix):
         # #include "namespacename.h"
 
         reset_rendered_types()
-        if 'interfaces' in filter:
+        if 'interfaces' in filterstr:
             for i in p.interfaces.values():
                 result = template_render_complex_types(p, i, imports)
                 if len(result) != 0:
                     write_result_file(result, i.name, "", suffix)
 
         reset_rendered_types()
-        if 'typecollections' in filter:
+        if 'typecollections' in filterstr:
             for tc in p.typecollections.values():
                 result = template_render_complex_types(p, tc, imports)
                 if len(result) != 0:
                     write_result_file(result, tc.name, "", suffix)
 
+
 def main():
     for f in FIDL_FILES:
-        log ("-------------------------------------------------------")
-        log (" ----- PROCESSING %s -----" % f)
-        log ("-------------------------------------------------------")
+        log("-------------------------------------------------------")
+        log(" ----- PROCESSING %s -----" % f)
+        log("-------------------------------------------------------")
         process_file(f)
 
 
 if __name__ == "__main__":
     main()
-
