@@ -8,7 +8,9 @@ This partly solves the issue mentioned in [Readme](https://github.com/gunnarx/py
 If clang-format cannot be called then there is no friendly message - you
 will get a complaint and trace from python.
 
-* pyfranca and jinja2
+* [pyfranca](https://github.com/gunnarx/pyfranca)
+* and
+* [jinja2](https://github.com/pallets/jinja) version <= 2.10.3
 
 # Documentation
 
