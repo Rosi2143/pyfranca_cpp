@@ -10,7 +10,7 @@ will get a complaint and trace from python.
 
 * [pyfranca](https://github.com/gunnarx/pyfranca)
 * and
-* [jinja2](https://github.com/pallets/jinja) version <= 2.10.3
+* [jinja2](https://github.com/pallets/jinja) version >= 3.x
 
 # Documentation
 
