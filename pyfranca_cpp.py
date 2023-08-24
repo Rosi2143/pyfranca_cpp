@@ -141,7 +141,6 @@ def boilerplate_from_file():
 is_rendered = set()
 rendered_types_ordered = []
 reference_pairs = set()
-rendered_types_index = {}
 
 
 def a_reference_to_b(element_a, element_b):
@@ -186,7 +185,6 @@ def reset_rendered_types():
     reference_pairs.clear()
     is_rendered.clear()
     rendered_types_ordered[:] = []
-    rendered_types_index.clear()
 
 
 def process_file(file):
@@ -431,7 +429,6 @@ def template_render_complex_types(package, item, imports):
 
     # Determine type rendering order
     sys.stdout.write("Reordering type definitions : ")
-    prepare_swap_types()
     swap_occurred = True
     while swap_occurred:
         sys.stdout.write('.')
@@ -452,16 +449,6 @@ def template_render_complex_types(package, item, imports):
     return fullresult
 
 
-def prepare_swap_types():
-    """Preparation: store the location of types
-       in rendered_types_ordered for easy lookup
-
-    """
-    for index, rendered_item in enumerate(rendered_types_ordered):
-        name = rendered_item[0]
-        rendered_types_index[name] = index
-
-
 def swap_them(item_1, item_2):
     """swap order of items to make sure
        referred types are mentioned first
@@ -472,32 +459,10 @@ def swap_them(item_1, item_2):
     """
 
     # Get indices
-    item_index_1 = rendered_types_index[item_1]
-    item_index_2 = rendered_types_index[item_2]
+    item_index_1 = rendered_types_ordered.index(item_1)
+    item_index_2 = rendered_types_ordered.index(item_2)
 
-    # Swap (typename, text) pair location in array
-    item_tmp = rendered_types_ordered[item_index_1]
-    rendered_types_ordered[item_index_1] = rendered_types_ordered[item_index_2]
-    rendered_types_ordered[item_index_2] = item_tmp
-
-    # Update indices
-    rendered_types_index[item_1] = item_index_2
-    rendered_types_index[item_2] = item_index_1
-
-
-def b_is_defined_later_than_a(item_a, item_b):
-    """helper for "swap_them"
-       check if type_a is defined later
-       then type_b
-
-    Args:
-        a (_type_): _description_
-        b (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    return rendered_types_index[item_a] < rendered_types_index[item_b]
+    rendered_types_ordered[item_index_1], rendered_types_ordered[item_index_2] = rendered_types_ordered[item_index_2], rendered_types_ordered[item_index_1]
 
 
 def reorder_types():
@@ -527,8 +492,9 @@ def reorder_types():
         for rendered_item_2 in rendered_types_ordered:
             rendered_name_2 = rendered_item_2[0]
             if a_reference_to_b(rendered_name_1, rendered_name_2) and \
-                    b_is_defined_later_than_a(rendered_name_1, rendered_name_2):
-                swap_them(rendered_name_1, rendered_name_2)
+                    rendered_types_ordered.index(rendered_item_1) < \
+                    rendered_types_ordered.index(rendered_item_2):
+                swap_them(rendered_item_1, rendered_item_2)
                 return True
 
     # FIXME = notice and break circular dependency
