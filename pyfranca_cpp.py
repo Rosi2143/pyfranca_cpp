@@ -221,11 +221,30 @@ def is_array(x):
     return type(x) is ast.Array
 
 
-def render_type(x):
-    if is_array(x.type):
-        return "std::vector<{}>".format(x.type.type.name)
+def is_reference(x):
+    return type(x) is ast.Reference
+
+
+def render_type(x, base_namespace=""):
+    namespace = ""
+    type_is_array = False
+    if base_namespace != "":
+        base_namespace = base_namespace + "::"
+    type_to_render = x.type
+
+    if is_array(type_to_render):
+        type_to_render = x.type.type
+        type_is_array = True
+
+    if is_reference(type_to_render):
+        namespace = "{}{}::".format(base_namespace, type_to_render.reference.namespace.name)
+
+    rendered_type = "{}{}".format(namespace, type_to_render.name)
+
+    if type_is_array:
+        return "std::vector<{}>".format(rendered_type)
     else:
-        return "{}".format(x.type.name)
+        return rendered_type
 
 # Enumerators also require a bit of logic since they can have a value
 # (equal sign) or not.
@@ -316,7 +335,7 @@ def template_render_complex_types(package, item, imports):
 
     tpl = env.get_template('typesheader.tpl')
     fullresult = tpl.render(body=result, timestamp=timestamp,
-                            boilerplate=boilerplate_from_file(), imports=imports)
+                            boilerplate=boilerplate_from_file(), imports=list(imports), name=item.name)
 
     return fullresult
 
@@ -394,15 +413,15 @@ def template_render_plain_file(processor, filterstr, templatefile, prefix, suffi
         if 'typecollections' in filterstr:
             for tc in p.typecollections.values():
                 name = tc.name
-                r = tpl.render(item=tc, name=name, timestamp=ts,
-                               render_type=render_type, boilerplate="", imports=imports)
+                r = tpl.render(item=tc, name=name, timestamp=timestamp,
+                               render_type=render_type, boilerplate="", imports=list(imports))
                 result += r
 
         if 'interfaces' in filterstr:
             for i in p.interfaces.values():
                 name = i.name    # This takes priority for the chosen file name
                 r = tpl.render(item=i, name=name, timestamp=timestamp,
-                               render_type=render_type, boilerplate="", imports=imports)
+                               render_type=render_type, boilerplate="", imports=list(imports))
                 result += r
 
         if name != None and len(result) != 0:
