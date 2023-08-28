@@ -316,7 +316,6 @@ def render_type(parameter_name, base_namespace=""):
     Returns:
         _type_: fully qualified type info
     """
-    namespace = ""
     type_is_array = False
     if base_namespace != "":
         base_namespace = base_namespace + "::"
@@ -326,6 +325,7 @@ def render_type(parameter_name, base_namespace=""):
         type_to_render = parameter_name.type.type
         type_is_array = True
 
+    namespace = ""
     if is_reference(type_to_render):
         namespace = f"{base_namespace}{type_to_render.reference.namespace.name}::"
 
@@ -336,12 +336,11 @@ def render_type(parameter_name, base_namespace=""):
 
     return rendered_type
 
-# Enumerators also require a bit of logic since they can have a value
-# (equal sign) or not.
-
 
 def render_enumerator(enum_object):
     """function called from template to render enum info
+       Enumerators also require a bit of logic since they can have a value
+       (equal sign) or not.
 
     Args:
         eo (enum): name of the enum
