@@ -11,7 +11,6 @@ Generate stuff from Franca IDL based on templates
 import sys
 import os
 import time
-from jinja2 import Environment, BaseLoader, TemplateNotFound
 from itertools import *
 
 # call, POpen, ...
@@ -28,6 +27,7 @@ sys.path.append(os.getcwd() + "/../jinja/src")
 
 from pyfranca import Processor, LexerException, ParserException, ProcessorException, ast
 from pyfranca.ast import Array
+from jinja2 import Environment, BaseLoader, TemplateNotFound
 
 # From jinja2 docs
 
@@ -316,7 +316,6 @@ def render_type(parameter_name, base_namespace=""):
     Returns:
         _type_: fully qualified type info
     """
-    namespace = ""
     type_is_array = False
     if base_namespace != "":
         base_namespace = base_namespace + "::"
@@ -326,6 +325,7 @@ def render_type(parameter_name, base_namespace=""):
         type_to_render = parameter_name.type.type
         type_is_array = True
 
+    namespace = ""
     if is_reference(type_to_render):
         namespace = f"{base_namespace}{type_to_render.reference.namespace.name}::"
 
@@ -336,12 +336,11 @@ def render_type(parameter_name, base_namespace=""):
 
     return rendered_type
 
-# Enumerators also require a bit of logic since they can have a value
-# (equal sign) or not.
-
 
 def render_enumerator(enum_object):
     """function called from template to render enum info
+       Enumerators also require a bit of logic since they can have a value
+       (equal sign) or not.
 
     Args:
         eo (enum): name of the enum
