@@ -11,7 +11,6 @@ Generate stuff from Franca IDL based on templates
 import sys
 import os
 import time
-from jinja2 import Environment, BaseLoader, TemplateNotFound
 from itertools import *
 
 # call, POpen, ...
@@ -28,6 +27,7 @@ sys.path.append(os.getcwd() + "/../jinja/src")
 
 from pyfranca import Processor, LexerException, ParserException, ProcessorException, ast
 from pyfranca.ast import Array
+from jinja2 import Environment, BaseLoader, TemplateNotFound
 
 # From jinja2 docs
 
