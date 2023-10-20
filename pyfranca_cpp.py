@@ -232,6 +232,9 @@ def process_fidl(name, fidl_text):
     template = "class.tpl"
     template_render_plain_file(processor, ['interfaces'], template, "", ".cpp")
 
+    template = "unittest.tpl"
+    template_render_plain_file(processor, ['interfaces'], template, "utest_", "_mock.h")
+
     render_typedef_file(processor, ['interfaces', 'typecollections'], ".types.h")
 
 
